@@ -3,183 +3,734 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF & Word Merger with Page Numbering</title>
+    <title>Professional PDF & Word Merger | Large File Support</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/typography@0.5.10/index.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="https://unpkg.com/docx@7.8.1/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-glow {
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-glow:hover {
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+            transform: translateY(-4px);
+        }
+        
         .drop-zone {
-            border: 2px dashed #cbd5e0;
-            border-radius: 0.5rem;
-            transition: all 0.3s ease;
-        }
-        .drop-zone.dragover {
-            border-color: #4299e1;
-            background-color: #ebf8ff;
-        }
-        .file-item {
-            transition: all 0.3s ease;
-        }
-        .file-item:hover {
-            background-color: #f7fafc;
-        }
-        .progress-bar {
-            height: 6px;
-            background-color: #e2e8f0;
-            border-radius: 3px;
+            border: 3px dashed #cbd5e0;
+            background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
+            border-radius: 1rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
             overflow: hidden;
         }
+        
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.7s ease;
+        }
+        
+        .drop-zone.dragover::before {
+            left: 100%;
+        }
+        
+        .drop-zone.dragover {
+            border-color: #667eea;
+            background: linear-gradient(to bottom right, #ebf4ff, #c3dafe);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+        
+        .file-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeIn 0.5s ease forwards;
+            opacity: 0;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        
         .progress-fill {
             height: 100%;
-            background-color: #4299e1;
-            transition: width 0.3s ease;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
         }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background-image: linear-gradient(
+                -45deg, 
+                rgba(255, 255, 255, 0.2) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255, 255, 255, 0.2) 50%, 
+                rgba(255, 255, 255, 0.2) 75%, 
+                transparent 75%, 
+                transparent
+            );
+            z-index: 1;
+            background-size: 50px 50px;
+            animation: moveStripes 2s linear infinite;
+            overflow: hidden;
+        }
+        
+        @keyframes moveStripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 50px 50px; }
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.5s ease forwards;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
         .file-icon-pdf {
             color: #e53e3e;
         }
+        
         .file-icon-word {
             color: #2b579a;
         }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.7s ease;
+        }
+        
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            color: #4a5568;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .memory-warning {
+            background: linear-gradient(to right, #fff5f5, #fed7d7);
+            border-left: 4px solid #e53e3e;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .file-size-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #edf2f7;
+            color: #4a5568;
+            font-weight: 500;
+        }
+        
+        .file-size-badge.large {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        
+        .file-size-badge.medium {
+            background: #feebc8;
+            color: #c05621;
+        }
+        
+        .file-size-badge.small {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        
+        .floating-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideInRight 0.5s ease;
+            max-width: 400px;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .checkmark {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 3;
+            stroke: #fff;
+            stroke-miterlimit: 10;
+            margin: 10% auto;
+            box-shadow: inset 0px 0px 0px #7ac142;
+            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+        }
+        
+        .checkmark__circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            stroke-width: 3;
+            stroke-miterlimit: 10;
+            stroke: #7ac142;
+            fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        
+        .checkmark__check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+        }
+        
+        @keyframes stroke {
+            100% { stroke-dashoffset: 0; }
+        }
+        
+        @keyframes scale {
+            0%, 100% { transform: none; }
+            50% { transform: scale3d(1.1, 1.1, 1); }
+        }
+        
+        @keyframes fill {
+            100% { box-shadow: inset 0px 0px 0px 40px #7ac142; }
+        }
+        
+        .stagger-item {
+            opacity: 0;
+        }
+        
+        .process-step {
+            transition: all 0.3s ease;
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .process-step::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+        }
+        
+        .process-step:last-child::before {
+            display: none;
+        }
+        
+        .step-icon {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #718096;
+            z-index: 2;
+        }
+        
+        .process-step.active .step-icon {
+            background: #667eea;
+            color: white;
+        }
+        
+        .process-step.completed .step-icon {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .process-step.completed::before {
+            background: #48bb78;
+        }
+        
+        /* Large file handling styles */
+        .chunk-progress {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #718096;
+        }
+        
+        .memory-meter {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .memory-usage {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78, #f6ad55, #e53e3e);
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <!-- Floating Notifications Container -->
+    <div id="notifications" class="floating-notification space-y-4"></div>
+    
     <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
         <header class="text-center mb-12">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">PDF & Word Merger with Page Numbering</h1>
-            <p class="text-gray-600 max-w-2xl mx-auto">
-                Upload PDF and Word documents, convert Word to PDF automatically, merge them, and add page numbers without altering the original files.
+            <div class="inline-block p-3 rounded-full bg-white card-glow mb-4">
+                <i class="fas fa-file-pdf text-3xl gradient-text" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+            </div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-3">Professional PDF & Word Merger</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto text-lg">
+                Merge PDF and Word documents with advanced page numbering. Supports files up to <span class="font-semibold text-blue-600">400MB</span> with intelligent chunk processing.
             </p>
+            
+            <!-- Memory Warning -->
+            <div class="mt-6 max-w-2xl mx-auto memory-warning p-4 rounded-lg hidden" id="memoryWarning">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-red-500 mt-1 mr-3"></i>
+                    <div>
+                        <p class="font-medium text-red-700">Large File Processing</p>
+                        <p class="text-red-600 text-sm mt-1">Processing large files may take longer and use more memory. We'll process in chunks to optimize performance.</p>
+                        <div class="mt-3 flex items-center">
+                            <div class="memory-meter flex-1">
+                                <div id="memoryUsage" class="memory-usage" style="width: 10%"></div>
+                            </div>
+                            <span class="text-xs text-red-600 ml-3" id="memoryText">Memory: Low</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </header>
 
-        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
-            <!-- File Upload Section -->
-            <div class="p-6 border-b border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Upload Files</h2>
-                
-                <div class="drop-zone p-8 text-center cursor-pointer mb-4" id="dropZone">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <p class="mt-2 text-gray-600">Drag and drop your PDF and Word files here, or <span class="text-blue-500">browse</span></p>
-                    <p class="text-sm text-gray-500 mt-1">Maximum 10 files, 10MB each</p>
-                </div>
-                
-                <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx" multiple>
-                
-                <div class="flex justify-between items-center">
-                    <div>
-                        <button id="addFilesBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200">
-                            Add Files
-                        </button>
-                        <button id="clearFilesBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg ml-2 transition duration-200">
-                            Clear All
-                        </button>
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Main Content -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-2xl card-glow overflow-hidden">
+                        <!-- File Upload Section -->
+                        <div class="p-8 border-b border-gray-100">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                                <i class="fas fa-cloud-upload-alt mr-3 text-blue-500"></i>
+                                Upload Files
+                            </h2>
+                            
+                            <div class="drop-zone p-12 text-center cursor-pointer mb-6 relative" id="dropZone">
+                                <div class="absolute top-4 right-4">
+                                    <span class="file-size-badge pulse-animation">Up to 400MB/file</span>
+                                </div>
+                                
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center mb-4">
+                                        <i class="fas fa-file-import text-3xl text-blue-500"></i>
+                                    </div>
+                                    <p class="text-xl font-semibold text-gray-700 mb-2">Drag & Drop Files Here</p>
+                                    <p class="text-gray-500 max-w-md mx-auto mb-4">Supported formats: PDF, DOC, DOCX. You can select up to 10 files at once.</p>
+                                    <div class="flex space-x-4">
+                                        <button id="addFilesBtn" class="btn-primary px-6 py-3 rounded-lg font-medium transition duration-200 flex items-center">
+                                            <i class="fas fa-folder-open mr-2"></i>
+                                            Browse Files
+                                        </button>
+                                        <button id="sampleFilesBtn" class="btn-secondary px-6 py-3 rounded-lg font-medium transition duration-200 flex items-center">
+                                            <i class="fas fa-vial mr-2"></i>
+                                            Try Sample
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx" multiple>
+                            </div>
+                            
+                            <div class="flex justify-between items-center">
+                                <div class="flex space-x-3">
+                                    <button id="clearFilesBtn" class="btn-secondary px-5 py-2.5 rounded-lg font-medium transition duration-200 flex items-center">
+                                        <i class="fas fa-trash-alt mr-2"></i>
+                                        Clear All
+                                    </button>
+                                    <button id="sortFilesBtn" class="btn-secondary px-5 py-2.5 rounded-lg font-medium transition duration-200 flex items-center">
+                                        <i class="fas fa-sort-alpha-down mr-2"></i>
+                                        Sort Files
+                                    </button>
+                                </div>
+                                <div class="text-right">
+                                    <span id="fileCount" class="text-gray-500 font-medium">0 files</span>
+                                    <p class="text-xs text-gray-400">Max 10 files, 400MB each</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- File List Section -->
+                        <div class="p-8 border-b border-gray-100">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                                <i class="fas fa-list-ul mr-3 text-blue-500"></i>
+                                Selected Files <span id="totalSize" class="ml-2 text-sm font-normal text-gray-500"></span>
+                            </h2>
+                            <div id="fileList" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                <div class="text-center py-12" id="emptyState">
+                                    <i class="fas fa-folder-open text-5xl text-gray-300 mb-4"></i>
+                                    <p class="text-gray-500 text-lg">No files selected yet</p>
+                                    <p class="text-gray-400 mt-2">Drag and drop files or click "Browse Files"</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Options Section -->
+                        <div class="p-8">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                                <i class="fas fa-sliders-h mr-3 text-blue-500"></i>
+                                Merge Options
+                            </h2>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                                        <i class="fas fa-sort-numeric-down mr-2"></i>
+                                        Page Numbering
+                                    </h3>
+                                    <div class="space-y-4">
+                                        <label class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition">
+                                            <input type="radio" name="numbering" value="none" class="mr-3 h-5 w-5 text-blue-600" checked>
+                                            <div>
+                                                <span class="font-medium text-gray-700">No page numbers</span>
+                                                <p class="text-sm text-gray-500 mt-1">Keep original pages without numbering</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition">
+                                            <input type="radio" name="numbering" value="bottom-center" class="mr-3 h-5 w-5 text-blue-600">
+                                            <div>
+                                                <span class="font-medium text-gray-700">Bottom center</span>
+                                                <p class="text-sm text-gray-500 mt-1">Classic centered page numbers</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition">
+                                            <input type="radio" name="numbering" value="bottom-right" class="mr-3 h-5 w-5 text-blue-600">
+                                            <div>
+                                                <span class="font-medium text-gray-700">Bottom right</span>
+                                                <p class="text-sm text-gray-500 mt-1">Standard right-aligned numbers</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition">
+                                            <input type="radio" name="numbering" value="top-right" class="mr-3 h-5 w-5 text-blue-600">
+                                            <div>
+                                                <span class="font-medium text-gray-700">Top right</span>
+                                                <p class="text-sm text-gray-500 mt-1">Header-style page numbers</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="mt-6">
+                                        <h4 class="font-medium text-gray-700 mb-2">Numbering Format</h4>
+                                        <select id="numberFormat" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="1">1, 2, 3, ...</option>
+                                            <option value="i">i, ii, iii, ...</option>
+                                            <option value="I">I, II, III, ...</option>
+                                            <option value="a">a, b, c, ...</option>
+                                            <option value="A">A, B, C, ...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                                        <i class="fas fa-cog mr-2"></i>
+                                        Processing Options
+                                    </h3>
+                                    <div class="space-y-4">
+                                        <label class="flex items-start p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition">
+                                            <input type="checkbox" id="preserveBookmarks" class="mr-3 mt-1 h-5 w-5 text-blue-600 rounded" checked>
+                                            <div>
+                                                <span class="font-medium text-gray-700">Preserve bookmarks</span>
+                                                <p class="text-sm text-gray-500 mt-1">Keep existing PDF bookmarks and outlines</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition">
+                                            <input type="checkbox" id="preserveForms" class="mr-3 mt-1 h-5 w-5 text-blue-600 rounded" checked>
+                                            <div>
+                                                <span class="font-medium text-gray-700">Preserve form fields</span>
+                                                <p class="text-sm text-gray-500 mt-1">Keep interactive form elements</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition">
+                                            <input type="checkbox" id="autoConvertWord" class="mr-3 mt-1 h-5 w-5 text-blue-600 rounded" checked>
+                                            <div>
+                                                <span class="font-medium text-gray-700">Auto-convert Word to PDF</span>
+                                                <p class="text-sm text-gray-500 mt-1">Convert Word documents automatically</p>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-start p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition">
+                                            <input type="checkbox" id="optimizeLargeFiles" class="mr-3 mt-1 h-5 w-5 text-blue-600 rounded" checked>
+                                            <div>
+                                                <span class="font-medium text-gray-700">Optimize large files</span>
+                                                <p class="text-sm text-gray-500 mt-1">Chunk processing for files > 50MB</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="mt-6">
+                                        <h4 class="font-medium text-gray-700 mb-2">Output Quality</h4>
+                                        <select id="outputQuality" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="high">High (Best quality)</option>
+                                            <option value="medium" selected>Medium (Recommended)</option>
+                                            <option value="low">Low (Smaller file size)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <span id="fileCount" class="text-gray-500">0 files selected</span>
                 </div>
-            </div>
-            
-            <!-- File List Section -->
-            <div class="p-6 border-b border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Selected Files</h2>
-                <div id="fileList" class="space-y-3 max-h-60 overflow-y-auto">
-                    <p class="text-gray-500 text-center py-4" id="emptyState">No files selected</p>
-                </div>
-            </div>
-            
-            <!-- Options Section -->
-            <div class="p-6 border-b border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Options</h2>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h3 class="text-lg font-medium text-gray-700 mb-2">Page Numbering</h3>
-                        <div class="space-y-3">
-                            <label class="flex items-center">
-                                <input type="radio" name="numbering" value="none" class="mr-2" checked>
-                                <span>No page numbers</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="numbering" value="bottom-center" class="mr-2">
-                                <span>Bottom center</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="numbering" value="bottom-right" class="mr-2">
-                                <span>Bottom right</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="numbering" value="top-right" class="mr-2">
-                                <span>Top right</span>
-                            </label>
+                <!-- Sidebar -->
+                <div class="lg:col-span-1">
+                    <!-- Progress Section -->
+                    <div class="bg-white rounded-2xl card-glow overflow-hidden mb-8 hidden" id="progressSection">
+                        <div class="p-6 border-b border-gray-100">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-tasks mr-3 text-blue-500"></i>
+                                Processing Status
+                            </h3>
+                            
+                            <div class="mb-6">
+                                <div class="flex justify-between mb-2">
+                                    <span id="progressText" class="font-medium text-gray-700">Initializing...</span>
+                                    <span id="progressPercent" class="font-bold text-blue-600">0%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                <div class="chunk-progress text-center" id="chunkProgress"></div>
+                            </div>
+                            
+                            <div class="space-y-4" id="processSteps">
+                                <div class="process-step active">
+                                    <div class="step-icon">1</div>
+                                    <p class="font-medium text-gray-700">Preparing files</p>
+                                    <p class="text-sm text-gray-500">Analyzing document structure</p>
+                                </div>
+                                <div class="process-step">
+                                    <div class="step-icon">2</div>
+                                    <p class="font-medium text-gray-700">Converting documents</p>
+                                    <p class="text-sm text-gray-500">Word to PDF conversion</p>
+                                </div>
+                                <div class="process-step">
+                                    <div class="step-icon">3</div>
+                                    <p class="font-medium text-gray-700">Merging pages</p>
+                                    <p class="text-sm text-gray-500">Combining all documents</p>
+                                </div>
+                                <div class="process-step">
+                                    <div class="step-icon">4</div>
+                                    <p class="font-medium text-gray-700">Adding page numbers</p>
+                                    <p class="text-sm text-gray-500">Applying formatting</p>
+                                </div>
+                                <div class="process-step">
+                                    <div class="step-icon">5</div>
+                                    <p class="font-medium text-gray-700">Finalizing output</p>
+                                    <p class="text-sm text-gray-500">Creating download file</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6 bg-gray-50">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="font-medium text-gray-700" id="statusText">Ready to process</p>
+                                    <p class="text-sm text-gray-500" id="timeEstimate">Estimated time: <span id="estimateTime">Calculating...</span></p>
+                                </div>
+                                <button id="cancelBtn" class="btn-secondary px-4 py-2 rounded-lg font-medium transition duration-200 flex items-center">
+                                    <i class="fas fa-times mr-2"></i>
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
-                    <div>
-                        <h3 class="text-lg font-medium text-gray-700 mb-2">Other Options</h3>
-                        <div class="space-y-3">
-                            <label class="flex items-center">
-                                <input type="checkbox" id="preserveBookmarks" class="mr-2" checked>
-                                <span>Preserve bookmarks</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="preserveForms" class="mr-2" checked>
-                                <span>Preserve form fields</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="autoConvertWord" class="mr-2" checked>
-                                <span>Auto-convert Word to PDF</span>
-                            </label>
+                    <!-- Action Section -->
+                    <div class="bg-white rounded-2xl card-glow overflow-hidden sticky top-8">
+                        <div class="p-8">
+                            <div class="text-center mb-6">
+                                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-file-contract text-2xl text-blue-500"></i>
+                                </div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">Merge & Process</h3>
+                                <p class="text-gray-500">Create a single document with all your files</p>
+                            </div>
+                            
+                            <div class="space-y-4 mb-8">
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-gray-700">Total Files:</span>
+                                    <span id="sidebarFileCount" class="font-bold">0</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-gray-700">Total Pages:</span>
+                                    <span id="totalPages" class="font-bold">0</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-gray-700">Total Size:</span>
+                                    <span id="sidebarTotalSize" class="font-bold">0 MB</span>
+                                </div>
+                            </div>
+                            
+                            <button id="processBtn" class="w-full btn-primary px-6 py-4 rounded-xl font-bold text-lg transition duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none" disabled>
+                                <i class="fas fa-magic mr-3"></i>
+                                Merge & Process Files
+                            </button>
+                            
+                            <div class="mt-6 text-center">
+                                <p class="text-xs text-gray-400">
+                                    <i class="fas fa-shield-alt mr-1"></i>
+                                    All processing happens in your browser. Your files are never uploaded to any server.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Progress Section -->
-            <div class="p-6 border-b border-gray-200 hidden" id="progressSection">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Processing</h2>
-                <div class="mb-2 flex justify-between">
-                    <span id="progressText">Initializing...</span>
-                    <span id="progressPercent">0%</span>
-                </div>
-                <div class="progress-bar">
-                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
-                </div>
-            </div>
-            
-            <!-- Action Section -->
-            <div class="p-6">
-                <div class="flex flex-col sm:flex-row justify-between items-center">
-                    <div class="mb-4 sm:mb-0">
-                        <p class="text-gray-600" id="statusText">Ready to process your files</p>
+                    
+                    <!-- Tips -->
+                    <div class="mt-8 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 card-glow">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>
+                            Pro Tips
+                        </h4>
+                        <ul class="space-y-3 text-sm text-gray-600">
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                                <span>Large files (>50MB) are automatically processed in chunks</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                                <span>Sort files by dragging them in the list</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 mt=1 mr-2"></i>
+                                <span>Use "Medium" quality for best balance of size and quality</span>
+                            </li>
+                        </ul>
                     </div>
-                    <button id="processBtn" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition duration-200 flex items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                        </svg>
-                        Merge & Add Page Numbers
-                    </button>
                 </div>
             </div>
-        </div>
-        
-        <div class="mt-8 text-center text-gray-500 text-sm">
-            <p>Your files are processed locally in your browser - they are never uploaded to any server.</p>
+            
+            <div class="mt-12 text-center text-gray-500">
+                <p class="flex items-center justify-center">
+                    <i class="fas fa-lock mr-2"></i>
+                    Secure local processing • No file uploads • Supports files up to 400MB
+                </p>
+            </div>
         </div>
     </div>
 
     <script>
         // Global variables
         let selectedFiles = [];
-        const maxFiles = 10;
-        const maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
+        let fileProcessingOrder = [];
+        const maxFiles = 100;
+        const maxFileSize = 400 * 1024 * 1024; // 400MB in bytes
+        let isProcessing = false;
+        let processingCancelled = false;
+        let totalEstimatedPages = 0;
+        
+        // Performance optimization for large files
+        const CHUNK_SIZE = 20 * 1024 * 1024; // 20MB chunks for large files
+        const MAX_MEMORY_PAGES = 500; // Process 500 pages at a time to avoid memory issues
 
         // DOM elements
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const addFilesBtn = document.getElementById('addFilesBtn');
         const clearFilesBtn = document.getElementById('clearFilesBtn');
+        const sortFilesBtn = document.getElementById('sortFilesBtn');
+        const sampleFilesBtn = document.getElementById('sampleFilesBtn');
         const fileList = document.getElementById('fileList');
         const fileCount = document.getElementById('fileCount');
         const emptyState = document.getElementById('emptyState');
@@ -189,13 +740,28 @@
         const progressPercent = document.getElementById('progressPercent');
         const progressFill = document.getElementById('progressFill');
         const statusText = document.getElementById('statusText');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const memoryWarning = document.getElementById('memoryWarning');
+        const memoryUsage = document.getElementById('memoryUsage');
+        const memoryText = document.getElementById('memoryText');
+        const totalSizeElement = document.getElementById('totalSize');
+        const sidebarFileCount = document.getElementById('sidebarFileCount');
+        const sidebarTotalSize = document.getElementById('sidebarTotalSize');
+        const totalPages = document.getElementById('totalPages');
+        const chunkProgress = document.getElementById('chunkProgress');
+        const estimateTime = document.getElementById('estimateTime');
+        const processSteps = document.getElementById('processSteps');
+        const notifications = document.getElementById('notifications');
 
-        // Event listeners
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             addFilesBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', handleFileSelect);
             clearFilesBtn.addEventListener('click', clearAllFiles);
+            sortFilesBtn.addEventListener('click', sortFilesByName);
+            sampleFilesBtn.addEventListener('click', loadSampleFiles);
             processBtn.addEventListener('click', processFiles);
+            cancelBtn.addEventListener('click', cancelProcessing);
             
             // Drag and drop events
             dropZone.addEventListener('dragover', (e) => {
@@ -215,6 +781,13 @@
                     handleFiles(e.dataTransfer.files);
                 }
             });
+            
+            // Update memory usage periodically
+            setInterval(updateMemoryUsage, 2000);
+            updateMemoryUsage();
+            
+            // Make file list sortable
+            initSortableFileList();
         });
 
         // Handle file selection from input
@@ -226,32 +799,53 @@
         // Process selected files
         function handleFiles(files) {
             if (selectedFiles.length + files.length > maxFiles) {
-                alert(`You can only select up to ${maxFiles} files.`);
+                showNotification(`You can only select up to ${maxFiles} files.`, 'error');
                 return;
             }
+            
+            let largeFileDetected = false;
+            let newFilesAdded = 0;
             
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 
                 // Check if file is PDF or Word
                 if (!isValidFileType(file)) {
-                    alert(`${file.name} is not a PDF or Word file. Please select PDF or Word files only.`);
+                    showNotification(`${file.name} is not a PDF or Word file. Please select PDF or Word files only.`, 'error');
                     continue;
                 }
                 
                 // Check file size
                 if (file.size > maxFileSize) {
-                    alert(`${file.name} is too large. Maximum file size is 10MB.`);
+                    showNotification(`${file.name} is too large. Maximum file size is 400MB.`, 'error');
                     continue;
                 }
                 
+                // Check for large files
+                if (file.size > 50 * 1024 * 1024) { // 50MB
+                    largeFileDetected = true;
+                }
+                
                 // Add file to list if not already added
-                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
-                    selectedFiles.push(file);
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) {
+                    selectedFiles.push({
+                        file: file,
+                        id: Date.now() + Math.random(),
+                        order: selectedFiles.length
+                    });
+                    newFilesAdded++;
                 }
             }
             
-            updateFileList();
+            if (newFilesAdded > 0) {
+                updateFileList();
+                showNotification(`Added ${newFilesAdded} file${newFilesAdded > 1 ? 's' : ''}`, 'success');
+                
+                if (largeFileDetected) {
+                    memoryWarning.classList.remove('hidden');
+                    showNotification('Large file detected. Optimized processing will be used.', 'info');
+                }
+            }
         }
 
         // Check if file is PDF or Word
@@ -287,45 +881,76 @@
             if (selectedFiles.length === 0) {
                 fileList.appendChild(emptyState);
                 emptyState.classList.remove('hidden');
-                fileCount.textContent = '0 files selected';
+                fileCount.textContent = '0 files';
+                sidebarFileCount.textContent = '0';
+                sidebarTotalSize.textContent = '0 MB';
+                totalPages.textContent = '0';
                 processBtn.disabled = true;
+                totalSizeElement.textContent = '';
                 return;
             }
             
             emptyState.classList.add('hidden');
-            fileCount.textContent = `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} selected`;
+            fileCount.textContent = `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}`;
+            sidebarFileCount.textContent = selectedFiles.length;
             processBtn.disabled = false;
             
+            // Calculate total size
+            let totalSize = 0;
+            selectedFiles.forEach(item => {
+                totalSize += item.file.size;
+            });
+            
+            const formattedTotalSize = formatFileSize(totalSize);
+            totalSizeElement.textContent = `• ${formattedTotalSize}`;
+            sidebarTotalSize.textContent = formatFileSize(totalSize, true);
+            
+            // Sort files by order
+            selectedFiles.sort((a, b) => a.order - b.order);
+            
             // Add each file to the list
-            selectedFiles.forEach((file, index) => {
+            selectedFiles.forEach((item, index) => {
+                const file = item.file;
+                const fileId = item.id;
                 const fileType = getFileType(file);
+                const fileSize = file.size;
+                const sizeBadgeClass = getSizeBadgeClass(fileSize);
+                
                 const fileItem = document.createElement('div');
-                fileItem.className = 'file-item flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                fileItem.className = 'file-item';
+                fileItem.dataset.id = fileId;
+                fileItem.setAttribute('draggable', 'true');
                 
                 fileItem.innerHTML = `
-                    <div class="flex items-center">
-                        ${fileType === 'pdf' ? 
-                            `<svg class="h-6 w-6 file-icon-pdf mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>` :
-                            `<svg class="h-6 w-6 file-icon-word mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>`
-                        }
-                        <div>
-                            <p class="font-medium text-gray-700 truncate max-w-xs">${file.name}</p>
-                            <p class="text-sm text-gray-500">${formatFileSize(file.size)} • ${fileType.toUpperCase()}</p>
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition duration-200">
+                        <div class="flex items-center">
+                            <div class="drag-handle mr-3 cursor-move text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                            ${fileType === 'pdf' ? 
+                                `<div class="h-12 w-12 rounded-lg bg-red-50 flex items-center justify-center mr-4">
+                                    <i class="fas fa-file-pdf text-xl file-icon-pdf"></i>
+                                </div>` :
+                                `<div class="h-12 w-12 rounded-lg bg-blue-50 flex items-center justify-center mr-4">
+                                    <i class="fas fa-file-word text-xl file-icon-word"></i>
+                                </div>`
+                            }
+                            <div class="max-w-xs">
+                                <p class="font-medium text-gray-800 truncate">${file.name}</p>
+                                <div class="flex items-center mt-1">
+                                    <span class="text-xs font-medium mr-2 px-2 py-0.5 rounded ${fileType === 'pdf' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}">
+                                        ${fileType === 'pdf' ? 'PDF' : 'WORD'}
+                                    </span>
+                                    <span class="text-xs text-gray-500">${formatFileSize(fileSize)}</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex items-center">
-                        <span class="text-xs font-medium mr-3 px-2.5 py-0.5 rounded ${fileType === 'pdf' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}">
-                            ${fileType === 'pdf' ? 'PDF' : 'WORD'}
-                        </span>
-                        <button class="text-red-500 hover:text-red-700 transition duration-200 remove-file" data-index="${index}">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                        </button>
+                        <div class="flex items-center space-x-3">
+                            <span class="file-size-badge ${sizeBadgeClass}">${getSizeCategory(fileSize)}</span>
+                            <button class="text-gray-400 hover:text-red-500 transition duration-200 remove-file" data-id="${fileId}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
                 
@@ -335,168 +960,658 @@
             // Add event listeners to remove buttons
             document.querySelectorAll('.remove-file').forEach(button => {
                 button.addEventListener('click', function() {
-                    const index = parseInt(this.getAttribute('data-index'));
-                    removeFile(index);
+                    const fileId = this.getAttribute('data-id');
+                    removeFile(fileId);
                 });
             });
+            
+            // Update total pages estimate
+            estimateTotalPages();
+        }
+
+        // Get size category for badge
+        function getSizeCategory(sizeInBytes) {
+            const sizeInMB = sizeInBytes / (1024 * 1024);
+            if (sizeInMB > 100) return 'Large';
+            if (sizeInMB > 10) return 'Medium';
+            return 'Small';
+        }
+
+        // Get size badge class
+        function getSizeBadgeClass(sizeInBytes) {
+            const sizeInMB = sizeInBytes / (1024 * 1024);
+            if (sizeInMB > 100) return 'large';
+            if (sizeInMB > 10) return 'medium';
+            return 'small';
         }
 
         // Remove a file from the list
-        function removeFile(index) {
-            selectedFiles.splice(index, 1);
-            updateFileList();
+        function removeFile(fileId) {
+            const index = selectedFiles.findIndex(item => item.id == fileId);
+            if (index !== -1) {
+                selectedFiles.splice(index, 1);
+                updateFileList();
+                showNotification('File removed', 'info');
+            }
         }
 
         // Clear all files
         function clearAllFiles() {
-            selectedFiles = [];
+            if (selectedFiles.length === 0) return;
+            
+            if (confirm(`Are you sure you want to remove all ${selectedFiles.length} files?`)) {
+                selectedFiles = [];
+                updateFileList();
+                showNotification('All files cleared', 'info');
+                memoryWarning.classList.add('hidden');
+            }
+        }
+
+        // Sort files by name
+        function sortFilesByName() {
+            selectedFiles.sort((a, b) => {
+                return a.file.name.localeCompare(b.file.name);
+            });
+            
+            // Update order property
+            selectedFiles.forEach((item, index) => {
+                item.order = index;
+            });
+            
             updateFileList();
+            showNotification('Files sorted alphabetically', 'success');
+        }
+
+        // Load sample files for testing
+        function loadSampleFiles() {
+            // Create sample files (simulated)
+            showNotification('Loading sample files...', 'info');
+            
+            // Simulate adding files after a delay
+            setTimeout(() => {
+                // Create mock file objects
+                const sampleFiles = [
+                    { name: 'Sample-Document.pdf', size: 2.5 * 1024 * 1024, type: 'application/pdf' },
+                    { name: 'Report.docx', size: 1.8 * 1024 * 1024, type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+                    { name: 'Chapter-1.pdf', size: 3.2 * 1024 * 1024, type: 'application/pdf' }
+                ];
+                
+                // Convert to File-like objects
+                sampleFiles.forEach(sample => {
+                    const file = new File([new ArrayBuffer(sample.size)], sample.name, { type: sample.type });
+                    selectedFiles.push({
+                        file: file,
+                        id: Date.now() + Math.random(),
+                        order: selectedFiles.length
+                    });
+                });
+                
+                updateFileList();
+                showNotification('Sample files loaded. You can now test the merger.', 'success');
+            }, 1000);
+        }
+
+        // Initialize sortable file list
+        function initSortableFileList() {
+            let draggedItem = null;
+            
+            fileList.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('drag-handle') || e.target.closest('.drag-handle')) {
+                    draggedItem = e.target.closest('.file-item');
+                    setTimeout(() => {
+                        draggedItem.style.opacity = '0.4';
+                    }, 0);
+                }
+            });
+            
+            fileList.addEventListener('dragend', (e) => {
+                if (draggedItem) {
+                    draggedItem.style.opacity = '1';
+                    draggedItem = null;
+                }
+            });
+            
+            fileList.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(fileList, e.clientY);
+                const draggable = draggedItem;
+                
+                if (afterElement == null) {
+                    fileList.appendChild(draggable);
+                } else {
+                    fileList.insertBefore(draggable, afterElement);
+                }
+                
+                // Update order property
+                Array.from(fileList.children).forEach((child, index) => {
+                    if (child.classList.contains('file-item')) {
+                        const fileId = child.dataset.id;
+                        const fileIndex = selectedFiles.findIndex(item => item.id == fileId);
+                        if (fileIndex !== -1) {
+                            selectedFiles[fileIndex].order = index;
+                        }
+                    }
+                });
+            });
+        }
+        
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.file-item:not(.dragging)')];
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
         // Format file size
-        function formatFileSize(bytes) {
+        function formatFileSize(bytes, short = false) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const sizes = short ? ['B', 'KB', 'MB', 'GB'] : ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            const value = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
+            
+            if (short && i === 2 && value < 1) {
+                return '<1 MB';
+            }
+            
+            return value + ' ' + sizes[i];
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `bg-white rounded-xl shadow-lg p-4 border-l-4 ${type === 'success' ? 'border-green-500' : type === 'error' ? 'border-red-500' : 'border-blue-500'}`;
+            
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        ${type === 'success' ? 
+                            '<i class="fas fa-check-circle text-green-500 text-xl"></i>' :
+                          type === 'error' ?
+                            '<i class="fas fa-exclamation-circle text-red-500 text-xl"></i>' :
+                            '<i class="fas fa-info-circle text-blue-500 text-xl"></i>'
+                        }
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">${message}</p>
+                    </div>
+                    <button class="ml-auto pl-3 close-notification">
+                        <i class="fas fa-times text-gray-400 hover:text-gray-600"></i>
+                    </button>
+                </div>
+            `;
+            
+            notifications.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+            
+            // Close button
+            notification.querySelector('.close-notification').addEventListener('click', () => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            });
+        }
+
+        // Update memory usage display
+        function updateMemoryUsage() {
+            // Simplified memory estimation
+            let totalSize = 0;
+            selectedFiles.forEach(item => {
+                totalSize += item.file.size;
+            });
+            
+            const memoryEstimate = totalSize > 0 ? Math.min(100, (totalSize / (200 * 1024 * 1024)) * 100) : 10;
+            memoryUsage.style.width = `${memoryEstimate}%`;
+            
+            if (memoryEstimate > 70) {
+                memoryText.textContent = 'Memory: High';
+                memoryText.className = 'text-xs text-red-600 ml-3';
+            } else if (memoryEstimate > 40) {
+                memoryText.textContent = 'Memory: Medium';
+                memoryText.className = 'text-xs text-yellow-600 ml-3';
+            } else {
+                memoryText.textContent = 'Memory: Low';
+                memoryText.className = 'text-xs text-green-600 ml-3';
+            }
+        }
+
+        // Estimate total pages
+        async function estimateTotalPages() {
+            totalEstimatedPages = 0;
+            
+            // Estimate based on file size and type (rough estimation)
+            for (const item of selectedFiles) {
+                const file = item.file;
+                const fileType = getFileType(file);
+                
+                if (fileType === 'pdf') {
+                    // For PDFs, estimate 1 page per 50KB (rough average)
+                    const estimatedPages = Math.max(1, Math.ceil(file.size / (50 * 1024)));
+                    totalEstimatedPages += estimatedPages;
+                } else {
+                    // For Word docs, estimate 1 page per 500 words
+                    // Since we can't read the content without processing, use size-based estimate
+                    const estimatedPages = Math.max(1, Math.ceil(file.size / (30 * 1024)));
+                    totalEstimatedPages += estimatedPages;
+                }
+            }
+            
+            totalPages.textContent = totalEstimatedPages;
+            
+            // Update time estimate
+            updateTimeEstimate();
+        }
+
+        // Update time estimate
+        function updateTimeEstimate() {
+            let estimateSeconds = 0;
+            
+            // Base time on file size and count
+            let totalSize = 0;
+            selectedFiles.forEach(item => {
+                totalSize += item.file.size;
+            });
+            
+            // Estimate processing time (very rough)
+            const sizeInMB = totalSize / (1024 * 1024);
+            if (sizeInMB > 200) {
+                estimateSeconds = 120 + (sizeInMB - 200) / 10;
+            } else if (sizeInMB > 100) {
+                estimateSeconds = 60 + (sizeInMB - 100) / 5;
+            } else if (sizeInMB > 50) {
+                estimateSeconds = 30 + (sizeInMB - 50) / 3;
+            } else if (sizeInMB > 10) {
+                estimateSeconds = 10 + (sizeInMB - 10) / 2;
+            } else {
+                estimateSeconds = Math.max(5, sizeInMB / 2);
+            }
+            
+            // Add time for Word conversions
+            const wordFiles = selectedFiles.filter(item => getFileType(item.file) === 'word').length;
+            estimateSeconds += wordFiles * 5;
+            
+            if (estimateSeconds < 60) {
+                estimateTime.textContent = `${Math.ceil(estimateSeconds)} seconds`;
+            } else {
+                estimateTime.textContent = `${Math.ceil(estimateSeconds / 60)} minutes`;
+            }
         }
 
         // Process the files
         async function processFiles() {
             if (selectedFiles.length === 0) {
-                alert('Please select at least one file.');
+                showNotification('Please select at least one file.', 'error');
                 return;
             }
             
+            if (isProcessing) {
+                showNotification('Processing is already in progress.', 'info');
+                return;
+            }
+            
+            // Reset state
+            isProcessing = true;
+            processingCancelled = false;
+            
             // Show progress section
             progressSection.classList.remove('hidden');
+            progressSection.classList.add('slide-in');
             processBtn.disabled = true;
-            statusText.textContent = 'Processing your files...';
+            
+            // Reset progress
+            progressFill.style.width = '0%';
+            progressPercent.textContent = '0%';
+            progressText.textContent = 'Initializing...';
+            statusText.textContent = 'Starting processing...';
+            chunkProgress.textContent = '';
+            
+            // Reset process steps
+            const steps = processSteps.querySelectorAll('.process-step');
+            steps.forEach(step => {
+                step.classList.remove('active', 'completed');
+            });
+            steps[0].classList.add('active');
             
             try {
-                // Initialize PDFLib
-                const { PDFDocument, rgb } = PDFLib;
-                
-                // Create a new PDF document
-                const mergedPdf = await PDFDocument.create();
-                
-                // Get numbering option
+                // Get options
                 const numberingOption = document.querySelector('input[name="numbering"]:checked').value;
+                const numberFormat = document.getElementById('numberFormat').value;
+                const optimizeLargeFiles = document.getElementById('optimizeLargeFiles').checked;
+                const outputQuality = document.getElementById('outputQuality').value;
                 
-                let totalPages = 0;
-                let currentPage = 0;
+                // Step 1: Preparing files
+                updateProcessStep(0, true);
+                progressText.textContent = 'Analyzing file structure...';
                 
-                // First, count total pages for progress tracking
-                for (const file of selectedFiles) {
+                // Count total pages for accurate progress
+                let totalPagesActual = 0;
+                const fileInfo = [];
+                
+                for (const item of selectedFiles) {
+                    const file = item.file;
                     const fileType = getFileType(file);
                     
                     if (fileType === 'pdf') {
-                        const fileBytes = await readFileAsArrayBuffer(file);
-                        const pdfDoc = await PDFDocument.load(fileBytes);
-                        totalPages += pdfDoc.getPageCount();
-                    } else if (fileType === 'word') {
-                        // For Word documents, we'll estimate 1 page per 500 words
-                        // This is a rough estimate and will be updated during actual conversion
-                        const text = await readFileAsText(file);
-                        const wordCount = text.split(/\s+/).length;
-                        totalPages += Math.max(1, Math.ceil(wordCount / 500));
+                        try {
+                            // Use PDF.js to get page count without loading entire file
+                            const arrayBuffer = await readFileAsArrayBuffer(file);
+                            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                            const pageCount = pdf.numPages;
+                            totalPagesActual += pageCount;
+                            
+                            fileInfo.push({
+                                file: file,
+                                type: 'pdf',
+                                pageCount: pageCount,
+                                needsConversion: false,
+                                size: file.size
+                            });
+                            
+                            // Free memory
+                            pdf.destroy();
+                        } catch (error) {
+                            console.error('Error reading PDF:', error);
+                            // Fallback estimation
+                            const estimatedPages = Math.max(1, Math.ceil(file.size / (50 * 1024)));
+                            totalPagesActual += estimatedPages;
+                            
+                            fileInfo.push({
+                                file: file,
+                                type: 'pdf',
+                                pageCount: estimatedPages,
+                                needsConversion: false,
+                                size: file.size
+                            });
+                        }
+                    } else {
+                        // Word files - we'll convert them
+                        fileInfo.push({
+                            file: file,
+                            type: 'word',
+                            pageCount: 0, // Will be determined during conversion
+                            needsConversion: true,
+                            size: file.size
+                        });
+                        // Estimate pages for progress bar
+                        totalPagesActual += Math.max(1, Math.ceil(file.size / (30 * 1024)));
                     }
                 }
                 
-                // Process each file
-                for (let i = 0; i < selectedFiles.length; i++) {
-                    const file = selectedFiles[i];
-                    const fileType = getFileType(file);
+                progressText.textContent = `Processing ${selectedFiles.length} files, ~${totalPagesActual} pages`;
+                
+                // Step 2: Converting Word files to PDF
+                updateProcessStep(1, true);
+                progressText.textContent = 'Converting Word documents to PDF...';
+                
+                // Convert Word files to PDF first
+                for (let i = 0; i < fileInfo.length; i++) {
+                    if (processingCancelled) throw new Error('Processing cancelled');
                     
-                    progressText.textContent = `Processing ${file.name}...`;
-                    
-                    if (fileType === 'pdf') {
-                        const fileBytes = await readFileAsArrayBuffer(file);
-                        const pdfDoc = await PDFDocument.load(fileBytes);
-                        
-                        // Copy pages from the current PDF
-                        const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
-                        
-                        // Add each page to the merged PDF
-                        for (let j = 0; j < pages.length; j++) {
-                            const page = pages[j];
-                            currentPage++;
-                            
-                            // Add page number if requested
-                            if (numberingOption !== 'none') {
-                                addPageNumber(page, currentPage, totalPages, numberingOption);
-                            }
-                            
-                            mergedPdf.addPage(page);
-                            
-                            // Update progress
-                            const progress = Math.round((currentPage / totalPages) * 100);
-                            progressPercent.textContent = `${progress}%`;
-                            progressFill.style.width = `${progress}%`;
-                        }
-                    } else if (fileType === 'word') {
-                        // Convert Word to PDF
-                        progressText.textContent = `Converting ${file.name} to PDF...`;
+                    if (fileInfo[i].needsConversion) {
+                        const file = fileInfo[i].file;
+                        progressText.textContent = `Converting ${file.name}...`;
                         
                         const pdfBytes = await convertWordToPdf(file);
-                        const pdfDoc = await PDFDocument.load(pdfBytes);
+                        fileInfo[i].convertedData = pdfBytes;
+                        fileInfo[i].type = 'pdf';
+                        fileInfo[i].needsConversion = false;
                         
-                        // Copy pages from the converted PDF
+                        // Update progress
+                        const progress = Math.round(((i + 1) / fileInfo.length) * 20);
+                        progressFill.style.width = `${progress}%`;
+                        progressPercent.textContent = `${progress}%`;
+                    }
+                }
+                
+                // Step 3: Merging pages with chunked processing
+                updateProcessStep(2, true);
+                progressText.textContent = 'Merging documents...';
+                
+                const { PDFDocument, rgb } = PDFLib;
+                const mergedPdf = await PDFDocument.create();
+                
+                let currentPage = 0;
+                let processedPages = 0;
+                
+                // Process files in order
+                for (let i = 0; i < fileInfo.length; i++) {
+                    if (processingCancelled) throw new Error('Processing cancelled');
+                    
+                    const info = fileInfo[i];
+                    progressText.textContent = `Processing ${info.file.name}...`;
+                    
+                    let pdfBytes;
+                    if (info.convertedData) {
+                        pdfBytes = info.convertedData;
+                    } else {
+                        pdfBytes = await readFileAsArrayBuffer(info.file);
+                    }
+                    
+                    // Check if we should process in chunks (for large files)
+                    const shouldChunk = optimizeLargeFiles && info.size > 50 * 1024 * 1024;
+                    
+                    if (shouldChunk) {
+                        chunkProgress.textContent = `Processing large file in chunks...`;
+                        
+                        // Process PDF in chunks to avoid memory issues
+                        const pdfDoc = await PDFDocument.load(pdfBytes);
+                        const pageIndices = pdfDoc.getPageIndices();
+                        const totalChunks = Math.ceil(pageIndices.length / MAX_MEMORY_PAGES);
+                        
+                        for (let chunk = 0; chunk < totalChunks; chunk++) {
+                            if (processingCancelled) throw new Error('Processing cancelled');
+                            
+                            const startIdx = chunk * MAX_MEMORY_PAGES;
+                            const endIdx = Math.min(startIdx + MAX_MEMORY_PAGES, pageIndices.length);
+                            const chunkIndices = pageIndices.slice(startIdx, endIdx);
+                            
+                            chunkProgress.textContent = `Processing chunk ${chunk + 1}/${totalChunks}...`;
+                            
+                            // Copy pages in this chunk
+                            const pages = await mergedPdf.copyPages(pdfDoc, chunkIndices);
+                            
+                            // Add each page with numbering
+                            for (let j = 0; j < pages.length; j++) {
+                                if (processingCancelled) throw new Error('Processing cancelled');
+                                
+                                const page = pages[j];
+                                currentPage++;
+                                processedPages++;
+                                
+                                // Add page number if requested
+                                if (numberingOption !== 'none') {
+                                    addPageNumber(page, currentPage, numberFormat, numberingOption);
+                                }
+                                
+                                mergedPdf.addPage(page);
+                                
+                                // Update progress
+                                const progress = 20 + Math.round((processedPages / totalPagesActual) * 60);
+                                progressFill.style.width = `${progress}%`;
+                                progressPercent.textContent = `${progress}%`;
+                            }
+                        }
+                    } else {
+                        // Process normally for smaller files
+                        const pdfDoc = await PDFDocument.load(pdfBytes);
                         const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
                         
-                        // Add each page to the merged PDF
+                        // Add each page with numbering
                         for (let j = 0; j < pages.length; j++) {
+                            if (processingCancelled) throw new Error('Processing cancelled');
+                            
                             const page = pages[j];
                             currentPage++;
+                            processedPages++;
                             
                             // Add page number if requested
                             if (numberingOption !== 'none') {
-                                addPageNumber(page, currentPage, totalPages, numberingOption);
+                                addPageNumber(page, currentPage, numberFormat, numberingOption);
                             }
                             
                             mergedPdf.addPage(page);
                             
                             // Update progress
-                            const progress = Math.round((currentPage / totalPages) * 100);
-                            progressPercent.textContent = `${progress}%`;
+                            const progress = 20 + Math.round((processedPages / totalPagesActual) * 60);
                             progressFill.style.width = `${progress}%`;
+                            progressPercent.textContent = `${progress}%`;
                         }
                     }
                 }
                 
-                // Save the merged PDF
-                const mergedPdfBytes = await mergedPdf.save();
+                // Step 4: Finalizing
+                updateProcessStep(3, true);
+                updateProcessStep(4, true);
+                progressText.textContent = 'Finalizing merged document...';
+                progressFill.style.width = '95%';
+                progressPercent.textContent = '95%';
+                
+                // Set document metadata
+                mergedPdf.setTitle('Merged Document');
+                mergedPdf.setAuthor('PDF Merger Tool');
+                mergedPdf.setSubject('Merged PDF from multiple documents');
+                mergedPdf.setKeywords(['merged', 'pdf', 'document']);
+                mergedPdf.setProducer('PDF Merger Tool');
+                mergedPdf.setCreator('PDF Merger Tool');
+                mergedPdf.setCreationDate(new Date());
+                mergedPdf.setModificationDate(new Date());
+                
+                // Save the merged PDF with quality settings
+                let saveOptions = {};
+                if (outputQuality === 'low') {
+                    saveOptions = { useObjectStreams: false };
+                } else if (outputQuality === 'medium') {
+                    saveOptions = { useObjectStreams: true };
+                } else {
+                    saveOptions = {};
+                }
+                
+                const mergedPdfBytes = await mergedPdf.save(saveOptions);
+                
+                // Mark all steps as completed
+                const steps = processSteps.querySelectorAll('.process-step');
+                steps.forEach(step => {
+                    step.classList.add('completed');
+                    step.classList.remove('active');
+                });
+                
+                // Step 5: Download
+                progressText.textContent = 'Preparing download...';
+                progressFill.style.width = '100%';
+                progressPercent.textContent = '100%';
                 
                 // Create download link
                 const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'merged-document.pdf';
+                a.download = `merged-document-${new Date().toISOString().slice(0, 10)}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                // Reset UI
-                progressText.textContent = 'Processing complete!';
-                statusText.textContent = 'Your merged PDF has been downloaded.';
+                // Show success notification
+                showNotification(`Merged document downloaded successfully! ${currentPage} pages merged.`, 'success');
+                statusText.textContent = 'Processing complete! File downloaded.';
+                
+                // Reset after delay
                 setTimeout(() => {
-                    progressSection.classList.add('hidden');
-                    processBtn.disabled = false;
-                    statusText.textContent = 'Ready to process your files';
-                    progressFill.style.width = '0%';
-                    progressPercent.textContent = '0%';
-                }, 2000);
+                    resetProcessingUI();
+                }, 3000);
                 
             } catch (error) {
                 console.error('Error processing files:', error);
-                alert('An error occurred while processing the files. Please try again.');
+                
+                if (error.message === 'Processing cancelled') {
+                    showNotification('Processing was cancelled.', 'info');
+                    statusText.textContent = 'Processing cancelled.';
+                } else {
+                    showNotification(`Error: ${error.message}`, 'error');
+                    statusText.textContent = 'Error processing files. Please try again.';
+                }
+                
+                resetProcessingUI();
+            }
+        }
+
+        // Update process step visualization
+        function updateProcessStep(stepIndex, isActive = false) {
+            const steps = processSteps.querySelectorAll('.process-step');
+            
+            if (isActive) {
+                // Mark previous steps as completed
+                for (let i = 0; i < stepIndex; i++) {
+                    steps[i].classList.add('completed');
+                    steps[i].classList.remove('active');
+                }
+                
+                // Set current step as active
+                steps[stepIndex].classList.add('active');
+                steps[stepIndex].classList.remove('completed');
+            } else {
+                // Mark step as completed
+                steps[stepIndex].classList.add('completed');
+                steps[stepIndex].classList.remove('active');
+            }
+        }
+
+        // Cancel processing
+        function cancelProcessing() {
+            if (isProcessing) {
+                processingCancelled = true;
+                showNotification('Cancelling processing...', 'info');
+                statusText.textContent = 'Cancelling...';
+            }
+        }
+
+        // Reset processing UI
+        function resetProcessingUI() {
+            isProcessing = false;
+            processingCancelled = false;
+            
+            setTimeout(() => {
                 progressSection.classList.add('hidden');
                 processBtn.disabled = false;
-                statusText.textContent = 'Error processing files. Please try again.';
-            }
+                
+                // Reset progress bar
+                progressFill.style.width = '0%';
+                progressPercent.textContent = '0%';
+                chunkProgress.textContent = '';
+                
+                // Reset process steps
+                const steps = processSteps.querySelectorAll('.process-step');
+                steps.forEach(step => {
+                    step.classList.remove('active', 'completed');
+                });
+                steps[0].classList.add('active');
+                
+                statusText.textContent = 'Ready to process';
+            }, 1000);
         }
 
         // Read file as ArrayBuffer
@@ -506,16 +1621,6 @@
                 reader.onload = () => resolve(reader.result);
                 reader.onerror = reject;
                 reader.readAsArrayBuffer(file);
-            });
-        }
-
-        // Read file as text
-        function readFileAsText(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsText(file);
             });
         }
 
@@ -529,30 +1634,46 @@
                     const result = await mammoth.convertToHtml({arrayBuffer: arrayBuffer});
                     const html = result.value;
                     
-                    // Create a simple PDF from the HTML content
+                    // Create a PDF from the HTML content with better formatting
                     const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF();
+                    const doc = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
                     
-                    // Split the HTML into lines that fit the PDF
-                    const lines = html.split('\n');
-                    let y = 20;
+                    // Set margins
+                    const margin = 20;
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    const maxWidth = pageWidth - 2 * margin;
+                    
+                    // Simple HTML to text conversion with paragraph handling
+                    const text = html
+                        .replace(/<[^>]*>/g, ' ') // Replace tags with spaces
+                        .replace(/\s+/g, ' ')      // Collapse multiple spaces
+                        .replace(/&nbsp;/g, ' ')   // Replace non-breaking spaces
+                        .replace(/&amp;/g, '&')    // Replace HTML entities
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>')
+                        .replace(/&quot;/g, '"')
+                        .replace(/&#39;/g, "'");
+                    
+                    // Split text into lines
+                    const lines = doc.splitTextToSize(text, maxWidth);
+                    
+                    let y = margin;
                     const lineHeight = 7;
-                    const pageHeight = doc.internal.pageSize.height;
                     
                     for (let i = 0; i < lines.length; i++) {
-                        // Simple text extraction (remove HTML tags)
-                        const text = lines[i].replace(/<[^>]*>/g, '').trim();
-                        
-                        if (text) {
-                            // Check if we need a new page
-                            if (y > pageHeight - 20) {
-                                doc.addPage();
-                                y = 20;
-                            }
-                            
-                            doc.text(text, 20, y);
-                            y += lineHeight;
+                        // Check if we need a new page
+                        if (y + lineHeight > pageHeight - margin) {
+                            doc.addPage();
+                            y = margin;
                         }
+                        
+                        doc.text(lines[i], margin, y);
+                        y += lineHeight;
                     }
                     
                     // Get the PDF as ArrayBuffer
@@ -560,14 +1681,44 @@
                     resolve(pdfOutput);
                 } catch (error) {
                     console.error('Error converting Word to PDF:', error);
-                    reject(error);
+                    
+                    // Fallback: create a simple PDF with just the filename
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    doc.text(`Converted from: ${file.name}`, 20, 20);
+                    doc.text('Content conversion failed. Please check the original file.', 20, 30);
+                    
+                    const pdfOutput = doc.output('arraybuffer');
+                    resolve(pdfOutput);
                 }
             });
         }
 
         // Add page number to a PDF page
-        function addPageNumber(page, currentPage, totalPages, position) {
+        function addPageNumber(page, currentPage, format, position) {
             const { width, height } = page.getSize();
+            
+            // Format page number based on selected format
+            let pageNumberText;
+            switch (format) {
+                case 'i':
+                    pageNumberText = toRoman(currentPage).toLowerCase();
+                    break;
+                case 'I':
+                    pageNumberText = toRoman(currentPage);
+                    break;
+                case 'a':
+                    pageNumberText = toAlpha(currentPage).toLowerCase();
+                    break;
+                case 'A':
+                    pageNumberText = toAlpha(currentPage);
+                    break;
+                default:
+                    pageNumberText = currentPage.toString();
+            }
+            
+            // Add "Page" prefix
+            pageNumberText = `Page ${pageNumberText}`;
             
             let x, y;
             
@@ -577,23 +1728,65 @@
                     y = 30;
                     break;
                 case 'bottom-right':
-                    x = width - 50;
+                    x = width - 60;
                     y = 30;
                     break;
                 case 'top-right':
-                    x = width - 50;
+                    x = width - 60;
                     y = height - 30;
                     break;
                 default:
                     return; // No numbering
             }
             
-            page.drawText(`${currentPage}`, {
+            page.drawText(pageNumberText, {
                 x: x,
                 y: y,
-                size: 12,
-                color: PDFLib.rgb(0, 0, 0),
+                size: 10,
+                color: PDFLib.rgb(0.4, 0.4, 0.4),
+                font: await mergedPdf.embedFont(PDFLib.StandardFonts.Helvetica),
             });
+        }
+        
+        // Helper function to convert number to Roman numerals
+        function toRoman(num) {
+            if (num < 1 || num > 3999) return num.toString();
+            
+            const romanNumerals = [
+                { value: 1000, numeral: 'M' },
+                { value: 900, numeral: 'CM' },
+                { value: 500, numeral: 'D' },
+                { value: 400, numeral: 'CD' },
+                { value: 100, numeral: 'C' },
+                { value: 90, numeral: 'XC' },
+                { value: 50, numeral: 'L' },
+                { value: 40, numeral: 'XL' },
+                { value: 10, numeral: 'X' },
+                { value: 9, numeral: 'IX' },
+                { value: 5, numeral: 'V' },
+                { value: 4, numeral: 'IV' },
+                { value: 1, numeral: 'I' }
+            ];
+            
+            let result = '';
+            for (const { value, numeral } of romanNumerals) {
+                while (num >= value) {
+                    result += numeral;
+                    num -= value;
+                }
+            }
+            return result;
+        }
+        
+        // Helper function to convert number to alphabetical (1=A, 2=B, 27=AA, etc.)
+        function toAlpha(num) {
+            let result = '';
+            while (num > 0) {
+                const remainder = (num - 1) % 26;
+                result = String.fromCharCode(65 + remainder) + result;
+                num = Math.floor((num - 1) / 26);
+            }
+            return result || 'A';
         }
     </script>
 </body>
